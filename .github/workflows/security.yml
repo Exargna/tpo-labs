@@ -18,9 +18,7 @@ jobs:
           python-version: 3.11
 
       - name: Install dependencies
-        run: |
-          pip install -r requirements.txt
-          pip install zap-cli
+        run: pip install -r requirements.txt
 
       - name: Run Bandit (SAST)
         run: bandit -r . --severity-level high
@@ -30,18 +28,9 @@ jobs:
           python app.py &
           sleep 5
 
-      - name: Run ZAP (DAST)
-        run: |
-          docker run -d -p 8080:8080 ghcr.io/zaproxy/zaproxy:stable zap.sh -daemon -host 0.0.0.0 -port 8080 -config api.disablekey=true
-          sleep 20
-          zap-cli --api-url http://localhost:8080 status -t 60
-          zap-cli --api-url http://localhost:8080 open-url http://localhost:5000/api/users
-          zap-cli --api-url http://localhost:8080 spider http://localhost:5000
-          zap-cli --api-url http://localhost:8080 active-scan http://localhost:5000
-          zap-cli --api-url http://localhost:8080 report -o zap_report.html -f html
-
-      - name: Upload report
-        uses: actions/upload-artifact@v4
+      - name: Run ZAP Scan (DAST)
+        uses: zaproxy/action-baseline@v0.14.0
         with:
-          name: zap-report
-          path: zap_report.html
+          target: 'http://127.0.0.1:5000/api/users'
+          fail_action: false
+          artifact_name: zap-report
